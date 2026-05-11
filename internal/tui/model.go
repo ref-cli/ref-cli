@@ -130,6 +130,7 @@ func (m Model) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.cursor > 0 {
 			m.cursor--
 			m.clampOffset()
+			m.entryCursor = 0
 			m.refreshPreview()
 		}
 		return m, nil
@@ -138,6 +139,7 @@ func (m Model) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.cursor < len(m.filtered)-1 {
 			m.cursor++
 			m.clampOffset()
+			m.entryCursor = 0
 			m.refreshPreview()
 		}
 		return m, nil
@@ -185,6 +187,7 @@ func (m Model) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	m.refilter()
 	m.cursor = 0
 	m.listOffset = 0
+	m.entryCursor = bestEntryForQuery(strings.TrimSpace(m.search.Value()), m.selected())
 	m.refreshPreview()
 	return m, c
 }
@@ -347,14 +350,37 @@ func (m *Model) refilter() {
 }
 
 func (m *Model) refreshPreview() {
-	m.entryCursor = 0
 	ex := m.selected()
 	if ex == nil {
 		m.preview.SetContent("")
 		return
 	}
 	m.preview.SetContent(m.renderContent(ex))
-	m.preview.GotoTop()
+	m.preview.SetYOffset(m.entryCursor * linesPerEntry)
+}
+
+// bestEntryForQuery returns the index of the entry in ex whose command+comment
+// text matches the most words from q. Falls back to 0 if nothing matches.
+func bestEntryForQuery(q string, ex *example.Example) int {
+	if q == "" || ex == nil {
+		return 0
+	}
+	words := strings.Fields(strings.ToLower(q))
+	bestIdx, bestScore := 0, 0
+	for i, e := range ex.Entries {
+		text := strings.ToLower(e.Command + " " + e.Comment)
+		score := 0
+		for _, w := range words {
+			if strings.Contains(text, w) {
+				score++
+			}
+		}
+		if score > bestScore {
+			bestScore = score
+			bestIdx = i
+		}
+	}
+	return bestIdx
 }
 
 func (m *Model) syncViewport() {
