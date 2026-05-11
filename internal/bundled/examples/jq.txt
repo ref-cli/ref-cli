@@ -1,0 +1,38 @@
+---
+tags: [ json, data ]
+---
+# To pretty-print JSON:
+jq . file.json
+
+# To extract a field:
+jq '.name' file.json
+
+# To extract a nested field:
+jq '.user.address.city' file.json
+
+# To extract from an array:
+jq '.[0]' file.json
+
+# To map over an array:
+jq '.[].name' file.json
+
+# To filter an array by condition:
+jq '.[] | select(.age > 30)' file.json
+
+# To create a new object from fields:
+jq '{name: .name, email: .email}' file.json
+
+# To list all keys of an object:
+jq 'keys' file.json
+
+# To get the length of an array:
+jq '. | length' file.json
+
+# To read from stdin:
+curl -s https://api.example.com/data | jq '.results[].id'
+
+# To output raw strings (no quotes):
+jq -r '.name' file.json
+
+# To update a field and output the modified JSON:
+jq '.version = "2.0"' file.json

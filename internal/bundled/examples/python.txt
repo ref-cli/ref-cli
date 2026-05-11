@@ -1,0 +1,35 @@
+---
+tags: [ python ]
+---
+# To run a Python script:
+python script.py
+
+# To create a virtual environment with uv:
+uv venv
+
+# To activate a virtual environment:
+source .venv/bin/activate
+
+# To install packages with uv:
+uv pip install requests
+
+# To install from requirements.txt:
+uv pip install -r requirements.txt
+
+# To freeze installed packages:
+uv pip freeze > requirements.txt
+
+# To run a script in an isolated environment:
+uv run script.py
+
+# To start an interactive REPL:
+python -c "import code; code.interact()"
+
+# To check the Python version:
+python --version
+
+# To run a module as a script:
+python -m http.server 8080
+
+# To profile a script:
+python -m cProfile -s cumulative script.py

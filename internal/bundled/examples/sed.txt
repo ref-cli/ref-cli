@@ -1,0 +1,36 @@
+---
+tags: [ text ]
+variants: [ bsd, gnu ]
+---
+# To substitute the first occurrence on each line:
+sed 's/old/new/' file.txt
+
+# To substitute all occurrences on each line:
+sed 's/old/new/g' file.txt
+
+# [GNU] To edit a file in place:
+sed -i 's/old/new/g' file.txt
+
+# [BSD] To edit a file in place (macOS):
+sed -i '' 's/old/new/g' file.txt
+
+# To delete lines matching a pattern:
+sed '/pattern/d' file.txt
+
+# To delete blank lines:
+sed '/^$/d' file.txt
+
+# To print only matching lines:
+sed -n '/pattern/p' file.txt
+
+# To print a specific line number:
+sed -n '5p' file.txt
+
+# To print a range of lines:
+sed -n '10,20p' file.txt
+
+# To insert a line before a match:
+sed '/pattern/i\new line' file.txt
+
+# To append a line after a match:
+sed '/pattern/a\new line' file.txt

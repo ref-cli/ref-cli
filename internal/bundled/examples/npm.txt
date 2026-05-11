@@ -1,0 +1,38 @@
+---
+tags: [ javascript, package-manager ]
+---
+# To initialize a new project:
+npm init -y
+
+# To install all dependencies from package.json:
+npm install
+
+# To install a package and save to dependencies:
+npm install express
+
+# To install a package as a dev dependency:
+npm install --save-dev typescript
+
+# To install a package globally:
+npm install -g typescript
+
+# To run a script defined in package.json:
+npm run build
+
+# To run tests:
+npm test
+
+# To list installed packages:
+npm list --depth=0
+
+# To update all packages to latest compatible versions:
+npm update
+
+# To check for outdated packages:
+npm outdated
+
+# To uninstall a package:
+npm uninstall lodash
+
+# To publish a package to npm:
+npm publish

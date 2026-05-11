@@ -1,0 +1,33 @@
+---
+tags: [ compression, archiving ]
+variants: [ bsd, gnu ]
+---
+# To extract an archive:
+tar -xvf /path/to/archive.tar
+
+# To extract a gzip-compressed archive:
+tar -xzvf /path/to/archive.tar.gz
+
+# To extract into a specific directory:
+tar -xzvf /path/to/archive.tar.gz -C /path/to/dest/
+
+# To create a gzip-compressed archive:
+tar -czvf /path/to/archive.tar.gz /path/to/dir/
+
+# To create a bzip2-compressed archive:
+tar -cjvf /path/to/archive.tar.bz2 /path/to/dir/
+
+# To list archive contents without extracting:
+tar -tvf /path/to/archive.tar.gz
+
+# To extract a single file from an archive:
+tar -xzvf /path/to/archive.tar.gz path/to/file
+
+# [GNU] To extract and show progress with pv:
+tar -xzvf /path/to/archive.tar.gz | pv > /dev/null
+
+# To append files to an existing uncompressed archive:
+tar -rvf /path/to/archive.tar /path/to/newfile
+
+# To exclude a directory when creating an archive:
+tar -czvf archive.tar.gz /path/to/dir/ --exclude=/path/to/dir/skip/

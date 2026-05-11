@@ -1,0 +1,32 @@
+---
+tags: [ text, data ]
+---
+# To print a specific column:
+awk '{print $2}' file.txt
+
+# To use a custom field separator:
+awk -F: '{print $1}' /etc/passwd
+
+# To filter rows where a field matches a pattern:
+awk '/error/' file.txt
+
+# To filter rows where a numeric field exceeds a value:
+awk '$3 > 100' file.txt
+
+# To print the last field of each line:
+awk '{print $NF}' file.txt
+
+# To sum a column:
+awk '{sum += $1} END {print sum}' file.txt
+
+# To print lines between two patterns:
+awk '/START/,/END/' file.txt
+
+# To add a line number prefix:
+awk '{print NR": "$0}' file.txt
+
+# To print only lines with more than N fields:
+awk 'NF > 3' file.txt
+
+# To replace a field value:
+awk '{$2 = "replaced"; print}' file.txt

@@ -1,0 +1,24 @@
+---
+tags: [ encoding ]
+variants: [ bsd, gnu ]
+---
+# To encode a string:
+echo -n "hello world" | base64
+
+# To decode a base64 string:
+echo "aGVsbG8gd29ybGQ=" | base64 --decode
+
+# To encode a file:
+base64 file.bin > file.b64
+
+# To decode a file:
+base64 --decode file.b64 > file.bin
+
+# [GNU] To wrap output at 76 characters (default):
+base64 -w 76 file.bin
+
+# [GNU] To encode without line wrapping:
+base64 -w 0 file.bin
+
+# [BSD] To encode without line wrapping (macOS):
+base64 -i file.bin | tr -d '\n'

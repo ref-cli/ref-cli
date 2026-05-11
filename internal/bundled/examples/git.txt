@@ -1,0 +1,44 @@
+---
+tags: [ vcs, git ]
+---
+# To clone a repository:
+git clone git@github.com:owner/repo.git
+
+# To create and switch to a new branch:
+git checkout -b feature/my-branch
+
+# To stage all changes and commit:
+git add -A && git commit -m "commit message"
+
+# To amend the last commit message:
+git commit --amend --no-edit
+
+# To stash uncommitted changes:
+git stash
+
+# To pop the most recent stash:
+git stash pop
+
+# To rebase current branch onto main:
+git rebase main
+
+# To squash the last N commits interactively:
+git rebase -i HEAD~3
+
+# To view a compact log with graph:
+git log --oneline --graph --decorate
+
+# To show diff of staged changes:
+git diff --staged
+
+# To hard-reset to a specific commit:
+git reset --hard <commit-hash>
+
+# To cherry-pick a commit onto the current branch:
+git cherry-pick <commit-hash>
+
+# To show which branch a commit is on:
+git branch --contains <commit-hash>
+
+# To delete a remote branch:
+git push origin --delete feature/old-branch

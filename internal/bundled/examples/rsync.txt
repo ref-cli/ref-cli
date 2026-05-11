@@ -1,0 +1,32 @@
+---
+tags: [ filesystem, sync, networking ]
+---
+# To copy a directory locally (preserving permissions):
+rsync -av /source/dir/ /dest/dir/
+
+# To sync to a remote host:
+rsync -av /local/dir/ user@host:/remote/dir/
+
+# To sync from a remote host:
+rsync -av user@host:/remote/dir/ /local/dir/
+
+# To do a dry run (show what would change):
+rsync -avn /source/ /dest/
+
+# To delete files in dest that don't exist in source:
+rsync -av --delete /source/ /dest/
+
+# To exclude a directory:
+rsync -av --exclude='node_modules' /source/ /dest/
+
+# To exclude multiple patterns:
+rsync -av --exclude='*.log' --exclude='.git' /source/ /dest/
+
+# To use SSH on a non-default port:
+rsync -av -e "ssh -p 2222" /source/ user@host:/dest/
+
+# To show progress during transfer:
+rsync -av --progress /source/ /dest/
+
+# To resume an interrupted transfer:
+rsync -av --partial /source/ /dest/

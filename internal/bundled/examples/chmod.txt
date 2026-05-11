@@ -1,0 +1,29 @@
+---
+tags: [ filesystem, permissions ]
+---
+# To make a file executable:
+chmod +x script.sh
+
+# To set owner-only read/write (600):
+chmod 600 ~/.ssh/id_rsa
+
+# To set standard file permissions (644):
+chmod 644 file.txt
+
+# To set standard directory permissions (755):
+chmod 755 /path/to/dir
+
+# To set permissions recursively:
+chmod -R 755 /path/to/dir
+
+# To remove write permission for group and others:
+chmod go-w file.txt
+
+# To add write permission for the owner:
+chmod u+w file.txt
+
+# To set sticky bit on a directory:
+chmod +t /tmp/shared/
+
+# To view current permissions in octal:
+stat -c "%a %n" file.txt

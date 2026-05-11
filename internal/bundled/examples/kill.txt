@@ -1,0 +1,26 @@
+---
+tags: [ processes ]
+---
+# To terminate a process by PID:
+kill <pid>
+
+# To force-kill a process by PID (SIGKILL):
+kill -9 <pid>
+
+# To kill all processes by name:
+pkill nginx
+
+# To force-kill all processes by name:
+pkill -9 nginx
+
+# To kill processes matching a pattern:
+pkill -f "python manage.py"
+
+# To send SIGHUP (reload config) to a process:
+kill -HUP <pid>
+
+# To list all available signals:
+kill -l
+
+# To kill the most recently backgrounded job:
+kill %1

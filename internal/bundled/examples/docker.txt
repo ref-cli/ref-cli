@@ -1,0 +1,41 @@
+---
+tags: [ containers, docker ]
+---
+# To build an image from a Dockerfile in the current directory:
+docker build -t myapp:latest .
+
+# To run a container interactively and remove it on exit:
+docker run -it --rm myapp:latest bash
+
+# To run a container in the background (detached):
+docker run -d -p 8080:80 --name myapp myapp:latest
+
+# To list running containers:
+docker ps
+
+# To list all containers including stopped:
+docker ps -a
+
+# To execute a command in a running container:
+docker exec -it myapp bash
+
+# To view container logs (follow):
+docker logs -f myapp
+
+# To stop and remove a container:
+docker stop myapp && docker rm myapp
+
+# To list images:
+docker images
+
+# To remove an image:
+docker rmi myapp:latest
+
+# To remove all stopped containers:
+docker container prune
+
+# To copy a file into a running container:
+docker cp ./local-file.txt myapp:/path/in/container/
+
+# To pull the latest image:
+docker pull ubuntu:24.04

@@ -1,0 +1,38 @@
+---
+tags: [ filesystem, search ]
+---
+# To find files by name:
+find . -name "*.go"
+
+# To find files by name (case-insensitive):
+find . -iname "readme*"
+
+# To find only directories:
+find . -type d -name "node_modules"
+
+# To find files modified in the last N days:
+find . -mtime -7 -type f
+
+# To find files larger than a given size:
+find . -size +10M -type f
+
+# To find and execute a command on each result:
+find . -name "*.log" -exec rm {} \;
+
+# To find and execute with confirmation:
+find . -name "*.tmp" -ok rm {} \;
+
+# To find files and pass them to xargs:
+find . -name "*.go" | xargs grep "TODO"
+
+# To find files excluding a directory:
+find . -name "*.js" -not -path "*/node_modules/*"
+
+# To find empty files:
+find . -type f -empty
+
+# To find files by permissions:
+find . -perm 644 -type f
+
+# To find symlinks:
+find . -type l

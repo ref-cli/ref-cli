@@ -1,0 +1,41 @@
+---
+tags: [ macos, package-manager ]
+---
+# To install a package:
+brew install ripgrep
+
+# To install a GUI app:
+brew install --cask visual-studio-code
+
+# To update Homebrew and all formulae:
+brew update
+
+# To upgrade all installed packages:
+brew upgrade
+
+# To upgrade a specific package:
+brew upgrade git
+
+# To search for a package:
+brew search jq
+
+# To show info about a package:
+brew info node
+
+# To list installed packages:
+brew list
+
+# To uninstall a package:
+brew uninstall wget
+
+# To remove unused dependencies:
+brew autoremove
+
+# To clean up old versions:
+brew cleanup
+
+# To add a tap:
+brew tap ref-cli/tap
+
+# To check for issues with your Homebrew setup:
+brew doctor

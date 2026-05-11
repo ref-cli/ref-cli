@@ -1,0 +1,26 @@
+---
+tags: [ processes ]
+---
+# To list all running processes:
+ps aux
+
+# To list processes for the current user:
+ps -u $USER
+
+# To search for a process by name:
+ps aux | grep nginx
+
+# To show process tree:
+ps -ejH
+
+# To show top CPU-consuming processes:
+ps aux --sort=-%cpu | head -10
+
+# To show top memory-consuming processes:
+ps aux --sort=-%mem | head -10
+
+# To get the PID of a named process:
+pgrep nginx
+
+# To show all threads for a process:
+ps -T -p <pid>

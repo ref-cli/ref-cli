@@ -30,7 +30,6 @@ Three repos:
 | `github.com/spf13/cobra` | v1.10.2 | CLI argument parsing | Stable v1; no breaking changes. Used by kubectl, gh, Hugo. |
 | `github.com/charmbracelet/bubbletea` | v1.3.10 | TUI framework | Pin to v1. v2 beta exists but API unstable — do not mix v1/v2. |
 | `github.com/charmbracelet/bubbles` | v1.0.0 | list, textinput, viewport components | Stay on v1 to match bubbletea v1. v2 beta tracks bubbletea v2. |
-| `github.com/charmbracelet/glamour` | v1.0.0 | Rendered markdown output | Just hit stable v1.0.0 (Nov 2025) after years as v0.x. |
 | `github.com/charmbracelet/lipgloss` | v1.1.0 | Terminal styling | Pin to v1. v2 beta has breaking API changes (renderer/color model). |
 | `github.com/sahilm/fuzzy` | v0.1.2 | Fuzzy matching | Pre-v1 but API is practically frozen; no v1 roadmap. |
 | `os/exec` (stdlib) | — | Shell out to `claude` or `codex` CLI | |
@@ -67,10 +66,10 @@ Three repos:
       keys.go            # keybindings
     bundled/
       bundled.go         # embed bundled examples via go:embed; expose version string
-  bundled-examples/      # git-submodule or copied snapshot of ref-examples at build time
-    tar.txt
-    git.txt
-    ...
+      examples/          # snapshot of ref-examples fetched at release time by bundle-examples.sh
+        tar.txt
+        git.txt
+        ...
   conf.yml.template      # default config written to ~/.config/ref/conf.yml on init
   go.mod                 # module: github.com/ref-cli/ref-cli
   go.sum
@@ -215,7 +214,7 @@ Entries with no version tag apply across all documented versions. Version tags a
 
 ### Bundled Examples
 
-Each `ref` release embeds a snapshot of `ref-examples` at build time using `go:embed bundled-examples/`. The CI release workflow downloads the latest tagged `ref-examples` zip, extracts it into `bundled-examples/`, and commits before building. The bundled version string is read from `bundled-examples/VERSION` and exposed as `internal/bundled.ExamplesVersion`.
+Each `ref` release embeds a snapshot of `ref-examples` at build time using `go:embed all:examples` (from `internal/bundled/bundled.go`). The CI release workflow runs `scripts/bundle-examples.sh`, which downloads the latest tagged `ref-examples` zip, extracts it into `internal/bundled/examples/`, and stages the result. The bundled version string is read from `internal/bundled/examples/VERSION` and exposed as `internal/bundled.ExamplesVersion`.
 
 `ref init` (and auto-init on first run):
 1. Creates `~/.config/ref/examples/`
@@ -376,9 +375,9 @@ Paste the following as a prompt to your AI agent:
 ## Startup Sequence (bare `ref`)
 
 1. Check if `~/.config/ref/conf.yml` exists — if not, auto-run init (extract bundled examples)
-2. If `last_update_check` is more than 7 days ago, run update check synchronously with a 3-second timeout (see Update Check below)
-3. If an examples update is available, prompt `[y/n]` and wait for response before opening TUI
-4. Print 2–3 line usage summary
+2. Display any pending update notifications stored from the previous background check; clear them from conf.yml
+3. If an examples update notification is pending, prompt `[y/n]` and wait for response before opening TUI
+4. If `last_update_check` is more than 7 days ago, spawn a background goroutine to check GitHub — no blocking on the hot path
 5. Enter interactive TUI
 
 ---
@@ -386,10 +385,11 @@ Paste the following as a prompt to your AI agent:
 ## Update Check
 
 On every invocation of `ref` (any subcommand):
-1. Read `last_update_check` from `~/.config/ref/conf.yml` — **no network call** if fewer than 7 days have passed; skip the rest.
-2. If 7 days have passed, call the GitHub releases API **synchronously** with a **3-second timeout**.
-3. If the call times out or fails (no network, DNS error, etc.), silently skip — do not show any error, do not update `last_update_check` (retry next invocation).
-4. If the call succeeds, update `last_update_check` in `conf.yml` and apply the rules below.
+1. Display any pending update notifications (`pending_binary_update`, `pending_examples_update`) from the previous background check; clear them from conf.yml.
+2. Read `last_update_check` from `~/.config/ref/conf.yml` — **no network call** if fewer than 7 days have passed; skip the rest.
+3. If 7 days have passed, spawn a background goroutine (non-blocking) that calls both GitHub release APIs with a **3-second timeout** each.
+4. If the goroutine fails (no network, DNS error, rate-limit, etc.), do not update `last_update_check` — the check retries on the next invocation after the failure.
+5. If the goroutine succeeds, save results as `pending_binary_update` / `pending_examples_update` in conf.yml and update `last_update_check`. Notifications are displayed on the **next** invocation.
 
 ### ref-cli binary out of date
 
@@ -420,9 +420,11 @@ Run 'ref examples sync' to update. [y to sync now, n to skip]
 ### `conf.yml` tracking fields
 
 ```yaml
-last_update_check: "2026-05-03T10:00:00Z"   # RFC3339, updated every check
+last_update_check: "2026-05-03T10:00:00Z"   # RFC3339, updated on successful background check
 examples_version: "v0.1.0"                   # version of currently installed examples
 install_method: "homebrew"                    # "homebrew" | "manual" | "source" — set on init
+pending_binary_update: "v1.2.0"              # set by background goroutine, cleared on display
+pending_examples_update: "v0.3.0"            # set by background goroutine, cleared on display
 ```
 
 `install_method` is detected on first init (check if `ref` binary path is under Homebrew's prefix) and used to tailor upgrade instructions.
@@ -732,7 +734,7 @@ bundle-examples:                   ## fetch latest ref-examples tag into bundled
     scripts/bundle-examples.sh
 ```
 
-`scripts/bundle-examples.sh` fetches the latest `ref-examples` tag from the GitHub API, downloads the zip, extracts `*.txt` files and `VERSION` into `bundled-examples/`, and stages the result. Run by the CI release workflow before building.
+`scripts/bundle-examples.sh` fetches the latest `ref-examples` tag from the GitHub API, downloads the zip, extracts `*.txt` files and `VERSION` into `internal/bundled/examples/`, and stages the result. Run by the CI release workflow before building.
 
 ---
 

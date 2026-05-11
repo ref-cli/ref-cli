@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Test
+        run: go test ./...
+
+      - name: Bundle latest ref-examples
+        run: make bundle-examples
+
+      - name: Build release tarballs
+        run: make release
+
+      - name: Compute SHA256
+        id: sha
+        run: |
+          for f in dist/*.tar.gz; do
+            sha256sum "$f" >> dist/checksums.txt
+          done
+          cat dist/checksums.txt
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/checksums.txt
+
+      - name: Update Homebrew tap
+        env:
+          TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          DARWIN_ARM64_SHA=$(grep "darwin_arm64.tar.gz" dist/checksums.txt | awk '{print $1}')
+          DARWIN_AMD64_SHA=$(grep "darwin_amd64.tar.gz" dist/checksums.txt | awk '{print $1}')
+          LINUX_ARM64_SHA=$(grep "linux_arm64.tar.gz"   dist/checksums.txt | awk '{print $1}')
+          LINUX_AMD64_SHA=$(grep "linux_amd64.tar.gz"   dist/checksums.txt | awk '{print $1}')
+
+          git clone "https://x-access-token:${TAP_TOKEN}@github.com/ref-cli/homebrew-tap.git" tap
+          cd tap
+
+          sed -i "s/version \".*\"/version \"${VERSION#v}\"/" Formula/ref.rb
+          sed -i "/darwin_arm64/{ n; s/sha256 \".*\"/sha256 \"${DARWIN_ARM64_SHA}\"/ }" Formula/ref.rb
+          sed -i "/darwin_amd64/{ n; s/sha256 \".*\"/sha256 \"${DARWIN_AMD64_SHA}\"/ }" Formula/ref.rb
+          sed -i "/linux_arm64/{ n; s/sha256 \".*\"/sha256 \"${LINUX_ARM64_SHA}\"/ }"   Formula/ref.rb
+          sed -i "/linux_amd64/{ n; s/sha256 \".*\"/sha256 \"${LINUX_AMD64_SHA}\"/ }"   Formula/ref.rb
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/ref.rb
+          git commit -m "ref ${VERSION}"
+          git push

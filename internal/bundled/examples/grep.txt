@@ -1,0 +1,39 @@
+---
+tags: [ search, text ]
+variants: [ bsd, gnu ]
+---
+# To search for a pattern in a file:
+grep "pattern" file.txt
+
+# To search recursively in a directory:
+grep -r "pattern" ./src/
+
+# To search case-insensitively:
+grep -i "pattern" file.txt
+
+# To show line numbers:
+grep -n "pattern" file.txt
+
+# To invert the match (show non-matching lines):
+grep -v "pattern" file.txt
+
+# To count matching lines:
+grep -c "pattern" file.txt
+
+# To show only the matching part of each line:
+grep -o "pattern" file.txt
+
+# [GNU] To search with Perl-compatible regex (PCRE):
+grep -P '\d{3}-\d{4}' file.txt
+
+# To search with extended regex:
+grep -E 'foo|bar' file.txt
+
+# To show N lines of context around matches:
+grep -C 3 "pattern" file.txt
+
+# To list only filenames with matches:
+grep -rl "pattern" ./src/
+
+# To exclude directories when searching recursively:
+grep -r "pattern" . --exclude-dir=node_modules

@@ -1,0 +1,38 @@
+---
+tags: [ http, networking ]
+---
+# To make a GET request:
+curl https://example.com/api/resource
+
+# To make a POST request with JSON body:
+curl -X POST https://example.com/api -H "Content-Type: application/json" -d '{"key":"value"}'
+
+# To set a request header:
+curl -H "Authorization: Bearer <token>" https://example.com/api
+
+# To follow redirects:
+curl -L https://example.com
+
+# To download a file and save with the remote filename:
+curl -OL https://example.com/file.tar.gz
+
+# To download a file and save with a specific name:
+curl -o output.tar.gz https://example.com/file.tar.gz
+
+# To show response headers only:
+curl -I https://example.com
+
+# To include response headers in output:
+curl -i https://example.com/api
+
+# To send form data:
+curl -F "file=@/path/to/file" https://example.com/upload
+
+# To use basic authentication:
+curl -u username:password https://example.com/api
+
+# To pass a client certificate:
+curl --cert /path/to/cert.pem --key /path/to/key.pem https://example.com
+
+# To silence progress output:
+curl -s https://example.com/api | jq .
