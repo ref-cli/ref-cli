@@ -120,7 +120,7 @@ ai_backend: claude
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions. In short:
 
 ```bash
-brew install go lefthook make
+brew install go lefthook golangci-lint make
 lefthook install
 make test
 make lint

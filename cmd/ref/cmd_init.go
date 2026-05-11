@@ -60,11 +60,13 @@ func doInit(verbose bool) error {
 			}
 			return err
 		}
-		if _, err := f.Write(data); err != nil {
-			f.Close()
-			return err
+		_, writeErr := f.Write(data)
+		if err := f.Close(); writeErr == nil {
+			writeErr = err
 		}
-		f.Close()
+		if writeErr != nil {
+			return writeErr
+		}
 
 		sum := fmt.Sprintf("%x", sha256.Sum256(data))
 		checksums[basename] = sum

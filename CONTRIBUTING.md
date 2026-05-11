@@ -7,7 +7,7 @@ This repository is a Go CLI project. For day-to-day development, the easiest set
 Install these tools on macOS:
 
 ```bash
-brew install go lefthook make
+brew install go lefthook golangci-lint make
 ```
 
 If `make` is already available through Xcode Command Line Tools, you can skip the Homebrew install.

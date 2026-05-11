@@ -34,6 +34,10 @@ var (
 	divStyle       = lipgloss.NewStyle().Foreground(colorSubtle)
 )
 
+// linesPerEntry is the number of rendered lines each entry occupies in the
+// preview: one comment line, one command line, and one blank separator.
+const linesPerEntry = 3
+
 // -------- message types --------
 
 type clearStatusMsg struct{}
@@ -50,6 +54,7 @@ type Model struct {
 	filtered    []*example.Example
 	cursor      int
 	listOffset  int
+	entryCursor int
 	examplesDir string
 
 	search  textinput.Model
@@ -137,9 +142,25 @@ func (m Model) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case bkey.Matches(msg, keys.EntryUp):
+		if ex := m.selected(); ex != nil && m.entryCursor > 0 {
+			m.entryCursor--
+			m.preview.SetContent(m.renderContent(ex))
+			m.preview.SetYOffset(m.entryCursor * linesPerEntry)
+		}
+		return m, nil
+
+	case bkey.Matches(msg, keys.EntryDown):
+		if ex := m.selected(); ex != nil && m.entryCursor < len(ex.Entries)-1 {
+			m.entryCursor++
+			m.preview.SetContent(m.renderContent(ex))
+			m.preview.SetYOffset(m.entryCursor * linesPerEntry)
+		}
+		return m, nil
+
 	case bkey.Matches(msg, keys.Copy):
-		if ex := m.selected(); ex != nil {
-			if clipboard.Write(ex.Raw) == nil {
+		if ex := m.selected(); ex != nil && m.entryCursor < len(ex.Entries) {
+			if clipboard.Write(ex.Entries[m.entryCursor].Command) == nil {
 				m.statusMsg = "Copied!"
 				return m, clearStatusAfter(2 * time.Second)
 			}
@@ -175,9 +196,17 @@ func (m Model) updateFullscreen(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.syncViewport()
 		return m, nil
 
+	case bkey.Matches(msg, keys.EntryUp):
+		m.moveEntry(-1)
+		return m, nil
+
+	case bkey.Matches(msg, keys.EntryDown):
+		m.moveEntry(+1)
+		return m, nil
+
 	case bkey.Matches(msg, keys.Copy):
-		if ex := m.selected(); ex != nil {
-			if clipboard.Write(ex.Raw) == nil {
+		if ex := m.selected(); ex != nil && m.entryCursor < len(ex.Entries) {
+			if clipboard.Write(ex.Entries[m.entryCursor].Command) == nil {
 				m.statusMsg = "Copied!"
 				return m, clearStatusAfter(2 * time.Second)
 			}
@@ -214,7 +243,7 @@ func (m Model) viewNormal() string {
 	previewLines := strings.Split(m.preview.View(), "\n")
 
 	var body strings.Builder
-	for i := 0; i < lh; i++ {
+	for i := range lh {
 		left := ""
 		if i < len(listLines) {
 			left = listLines[i]
@@ -240,7 +269,7 @@ func (m Model) viewFullscreen() string {
 		return ""
 	}
 	title := lipgloss.NewStyle().Bold(true).Render("ref " + ex.Name)
-	hint := statusBarStyle.Render("  [esc/q] back  [y] copy")
+	hint := statusBarStyle.Render("  [esc/q] back  [j/k] entry  [y] copy")
 	div := divStyle.Render(strings.Repeat("─", m.width))
 
 	m.preview.Width = m.width
@@ -250,7 +279,7 @@ func (m Model) viewFullscreen() string {
 
 func (m Model) renderList(width, height int) []string {
 	lines := make([]string, height)
-	for i := 0; i < height; i++ {
+	for i := range height {
 		idx := m.listOffset + i
 		if idx >= len(m.filtered) {
 			lines[i] = strings.Repeat(" ", width)
@@ -270,7 +299,7 @@ func (m Model) renderList(width, height int) []string {
 }
 
 func (m Model) renderFooter() string {
-	s := "[↑↓] navigate  [y] copy  [e] edit  [↵] fullscreen  [q] quit"
+	s := "[↑↓] navigate  [j/k] entry  [y] copy  [e] edit  [↵] fullscreen  [q] quit"
 	if m.statusMsg != "" {
 		s = m.statusMsg + "  " + s
 	}
@@ -278,6 +307,20 @@ func (m Model) renderFooter() string {
 }
 
 // -------- helpers --------
+
+func (m *Model) moveEntry(delta int) {
+	ex := m.selected()
+	if ex == nil {
+		return
+	}
+	next := m.entryCursor + delta
+	if next < 0 || next >= len(ex.Entries) {
+		return
+	}
+	m.entryCursor = next
+	m.preview.SetContent(m.renderContent(ex))
+	m.preview.SetYOffset(m.entryCursor * linesPerEntry)
+}
 
 func (m Model) selected() *example.Example {
 	if len(m.filtered) == 0 || m.cursor >= len(m.filtered) {
@@ -304,12 +347,13 @@ func (m *Model) refilter() {
 }
 
 func (m *Model) refreshPreview() {
+	m.entryCursor = 0
 	ex := m.selected()
 	if ex == nil {
 		m.preview.SetContent("")
 		return
 	}
-	m.preview.SetContent(renderContent(ex))
+	m.preview.SetContent(m.renderContent(ex))
 	m.preview.GotoTop()
 }
 
@@ -334,30 +378,15 @@ func (m *Model) clampOffset() {
 }
 
 func (m Model) leftW() int {
-	w := m.width / 5
-	if w < 14 {
-		w = 14
-	}
-	if w > 24 {
-		w = 24
-	}
-	return w
+	return max(14, min(24, m.width/5))
 }
 
 func (m Model) rightW() int {
-	w := m.width - m.leftW() - 3
-	if w < 1 {
-		w = 1
-	}
-	return w
+	return max(1, m.width-m.leftW()-3)
 }
 
 func (m Model) listH() int {
-	h := m.height - 4
-	if h < 1 {
-		h = 1
-	}
-	return h
+	return max(1, m.height-4)
 }
 
 func (m Model) editCmd() tea.Cmd {
@@ -379,19 +408,22 @@ func (m Model) editCmd() tea.Cmd {
 	})
 }
 
-func renderContent(ex *example.Example) string {
+func (m Model) renderContent(ex *example.Example) string {
 	var sb strings.Builder
 	for i, e := range ex.Entries {
 		if i > 0 {
 			sb.WriteByte('\n')
 		}
-		// comment line with optional tags
 		sb.WriteString("# ")
 		for _, t := range e.Tags {
 			sb.WriteString(tagStyle.Render("["+t+"]") + " ")
 		}
 		sb.WriteString(commentStyle.Render(e.Comment) + "\n")
-		sb.WriteString(e.Command + "\n")
+		if i == m.entryCursor {
+			sb.WriteString(selectedStyle.Render(e.Command) + "\n")
+		} else {
+			sb.WriteString(e.Command + "\n")
+		}
 	}
 	return sb.String()
 }

@@ -42,7 +42,7 @@ func latestTag(url string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("HTTP %d from %s", resp.StatusCode, url)
 	}
@@ -108,7 +108,7 @@ func Sync(examplesDir, checksumFile, requestedVersion string) (*SyncResult, erro
 	if err != nil {
 		return nil, fmt.Errorf("examples sync failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("examples sync: HTTP %d from %s", resp.StatusCode, zipURL)
 	}
@@ -150,7 +150,7 @@ func Sync(examplesDir, checksumFile, requestedVersion string) (*SyncResult, erro
 			continue
 		}
 		data, err := io.ReadAll(rc)
-		rc.Close()
+		_ = rc.Close()
 		if err != nil {
 			continue
 		}

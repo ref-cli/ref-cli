@@ -49,7 +49,7 @@ func runExamplesSync(requestedVersion string) error {
 	fmt.Fprintln(os.Stderr, "Syncing examples…")
 	result, err := update.Sync(config.ExamplesDir(), config.ChecksumsFile(), requestedVersion)
 	if err != nil {
-		return fmt.Errorf("ref: %w\nYour examples are unchanged. Try again later or check your connection.", err)
+		return fmt.Errorf("ref: %w\nYour examples are unchanged. Try again later or check your connection", err)
 	}
 
 	cfg.ExamplesVersion = result.Version
