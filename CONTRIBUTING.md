@@ -93,3 +93,33 @@ make bundle-examples
 - Run `make test`
 - Run `make lint`
 - Check that `gofmt` has been applied to any Go files you touched
+
+## Releasing
+
+Releases are triggered by pushing a version tag. The GitHub Actions release workflow handles everything else.
+
+**Prerequisites (one-time setup)**
+
+Add a `TAP_TOKEN` secret to the `ref-cli/ref-cli` repository (Settings → Secrets → Actions). It must be a GitHub personal access token with `repo` write access to `ref-cli/homebrew-tap` — the workflow uses it to auto-update the Homebrew formula.
+
+**Steps**
+
+```bash
+# 1. Verify everything passes locally
+make test
+make lint
+
+# 2. Tag and push — this triggers the release workflow
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+**What the workflow does**
+
+1. Runs the test suite
+2. Fetches the latest `ref-examples` tag and bundles it into the binary (`make bundle-examples`)
+3. Cross-compiles for `darwin/arm64`, `darwin/amd64`, `linux/arm64`, `linux/amd64`
+4. Creates a GitHub release with tarballs and `checksums.txt` attached
+5. Updates `Formula/ref.rb` in `ref-cli/homebrew-tap` with the new version and SHA256s
+
+The workflow file is at [`.github/workflows/release.yml`](.github/workflows/release.yml).
