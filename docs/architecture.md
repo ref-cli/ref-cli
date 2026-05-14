@@ -133,7 +133,7 @@ Layout:
 [↑↓] scroll  [←→] switch  [esc] command mode  [ctrl+c] quit
 ```
 
-The TUI has two modes. **Input mode** (default): typing filters the list; `esc` switches to command mode. **Command mode**: `i` returns to input mode; `y`, `e`, `↵` act on the selected example.
+The TUI has two modes. **Input mode** (default): typing filters the list. **Command mode**: `y`, `e`, `↵` act on the selected example. `esc` toggles between input mode and command mode.
 
 `←`/`→` switch the active pane. In the left pane `↑`/`↓` navigates the command list; in the right pane `↑`/`↓` moves the entry highlight. The top divider labels the active pane (highlighted) and shows the selected command name as the right pane title.
 
@@ -145,6 +145,7 @@ Features:
 - Pane switching with `←`/`→`; active pane highlighted in the divider
 - Entry highlight moves with `↑`/`↓` in the right pane
 - Copy to clipboard (`y`), open in `$EDITOR` (`e`), fullscreen preview (`↵`)
+- Frontmatter tags displayed in the right pane divider label; highlighted in tag colour when the pane is active
 
 ### 5. AI Fallback
 

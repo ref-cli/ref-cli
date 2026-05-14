@@ -274,7 +274,7 @@ ref contribute                   # print general contribution guide (fork URL, f
 # First run — auto-inits from bundled examples (no network call) and opens TUI
 $ ref
 Initializing ref with bundled examples (v0.1.0)... done (19 examples)
-ref — quick command examples  [↑↓] scroll  [←→] switch  [esc] command mode  [ctrl+c] quit
+ref — quick command examples  [↑↓] scroll  [←→] switch  [esc] toggle mode  [ctrl+c] quit
 > _
 
 # Look up a specific command
@@ -444,16 +444,16 @@ pending_examples_update: "v0.3.0"            # set by background goroutine, clea
 │ scp          │ tar -czvf /path/to/foo.tgz /path/to/foo/     │
 │ ...          │                                              │
 ├─────────────────────────────────────────────────────────────┤
-│ [↑↓] scroll  [←→] switch  [esc] command mode  [ctrl+c] quit│
+│ [↑↓] scroll  [←→] switch  [esc] toggle mode   [ctrl+c] quit│
 └─────────────────────────────────────────────────────────────┘
 ```
 
 The TUI has two modes:
 
-- **Input mode** (default): typing filters the command list. `↑`/`↓` and `←`/`→` work for navigation; `esc` switches to command mode.
-- **Command mode**: single-letter shortcuts are active. `i` returns to input mode.
+- **Input mode** (default): typing filters the command list. `↑`/`↓` and `←`/`→` work for navigation; `esc` toggles between modes.
+- **Command mode**: single-letter shortcuts are active. `esc` toggles between modes.
 
-The top divider labels each pane — the left always shows **command**, the right shows the currently selected command name (e.g. **tar**). The active pane label is highlighted.
+The top divider labels each pane — the left always shows **command**, the right shows the currently selected command name (e.g. **tar**). The active pane label is highlighted. When the selected example has frontmatter tags, they are shown in the right pane divider label next to the command name (e.g. `ssh  networking · remote`), styled in the tag colour when the right pane is active.
 
 **Key bindings (both modes):**
 
@@ -468,7 +468,7 @@ The top divider labels each pane — the left always shows **command**, the righ
 
 | Key | Action |
 |---|---|
-| `i` | Enter input mode |
+| `esc` | Toggle input/command mode |
 | `y` | Copy selected command to clipboard |
 | `e` | Open example file in `$EDITOR` |
 | `↵` | Fullscreen preview |

@@ -205,8 +205,8 @@ func (m Model) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// "i" enters search mode (vim-style insert)
-	if msg.Type == tea.KeyRunes && msg.String() == "i" {
+	// esc toggles back to input mode
+	if msg.Type == tea.KeyEsc {
 		m.search.Focus()
 		return m, nil
 	}
@@ -303,12 +303,16 @@ func (m Model) renderPaneDiv() string {
 	lw := m.leftW()
 	rw := m.rightW()
 
-	rightName := "─"
+	var rightName, tagSuffix string
 	if ex := m.selected(); ex != nil {
 		rightName = ex.Name
+		if len(ex.Frontmatter.Tags) > 0 {
+			tagSuffix = "  " + strings.Join(ex.Frontmatter.Tags, " · ")
+		}
+	} else {
+		rightName = "─"
 	}
 	leftLabel := " command "
-	rightLabel := " " + rightName + " "
 
 	var lStyle, rStyle lipgloss.Style
 	if m.activePane == 0 {
@@ -319,12 +323,23 @@ func (m Model) renderPaneDiv() string {
 		rStyle = activePaneStyle
 	}
 
-	leftFill := max(0, lw-lipgloss.Width(leftLabel))
-	rightFill := max(0, rw-lipgloss.Width(rightLabel))
+	// Right label: highlighted command name + subtle tags
+	rightNameStr := rStyle.Render(" " + rightName + " ")
+	rightTagStr := ""
+	if tagSuffix != "" {
+		ts := statusBarStyle
+		if m.activePane == 1 {
+			ts = tagStyle
+		}
+		rightTagStr = ts.Render(tagSuffix + " ")
+	}
+	rightLabelW := lipgloss.Width(rightNameStr) + lipgloss.Width(rightTagStr)
+	rightFill := max(0, rw-rightLabelW)
 
+	leftFill := max(0, lw-lipgloss.Width(leftLabel))
 	left := lStyle.Render(leftLabel) + divStyle.Render(strings.Repeat("─", leftFill))
 	mid := divStyle.Render("───") // aligns with " │ " in body lines
-	right := rStyle.Render(rightLabel) + divStyle.Render(strings.Repeat("─", rightFill))
+	right := rightNameStr + rightTagStr + divStyle.Render(strings.Repeat("─", rightFill))
 
 	return left + mid + right
 }
@@ -370,7 +385,7 @@ func (m Model) renderFooter() string {
 	if m.search.Focused() {
 		s = nav + "  [esc] command mode  [ctrl+c] quit"
 	} else {
-		s = nav + "  [i] input mode  [y] copy  [e] edit  [↵] fullscreen  [ctrl+c] quit"
+		s = nav + "  [esc] input mode  [y] copy  [e] edit  [↵] fullscreen  [ctrl+c] quit"
 	}
 	if m.statusMsg != "" {
 		s = m.statusMsg + "  " + s

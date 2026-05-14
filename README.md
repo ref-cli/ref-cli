@@ -47,7 +47,7 @@ make install          # installs to $(GOPATH)/bin
 
 ### TUI key bindings
 
-The TUI has two modes: **input mode** (default — type to search) and **command mode** (navigate and act on results). Press `esc` to switch to command mode; press `i` to return to input mode.
+The TUI has two modes: **input mode** (default — type to search) and **command mode** (navigate and act on results). Press `esc` to toggle between modes.
 
 **Both modes**
 
@@ -62,7 +62,7 @@ The TUI has two modes: **input mode** (default — type to search) and **command
 
 | Key  | Action                             |
 | ---- | ---------------------------------- |
-| `i`  | Enter input mode                   |
+| `esc` | Toggle to input mode              |
 | `y`  | Copy selected command to clipboard |
 | `e`  | Edit example file in `$EDITOR`     |
 | `↵`  | Toggle fullscreen preview          |
@@ -71,7 +71,7 @@ The TUI has two modes: **input mode** (default — type to search) and **command
 
 | Key   | Action                  |
 | ----- | ----------------------- |
-| `esc` | Enter command mode      |
+| `esc` | Toggle to command mode  |
 
 **Fullscreen**
 
