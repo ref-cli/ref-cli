@@ -274,7 +274,7 @@ ref contribute                   # print general contribution guide (fork URL, f
 # First run — auto-inits from bundled examples (no network call) and opens TUI
 $ ref
 Initializing ref with bundled examples (v0.1.0)... done (19 examples)
-ref — quick command examples  [↑↓] navigate  [y] copy  [e] edit  [q] quit
+ref — quick command examples  [↑↓] scroll  [←→] switch  [esc] command mode  [ctrl+c] quit
 > _
 
 # Look up a specific command
@@ -434,21 +434,48 @@ pending_examples_update: "v0.3.0"            # set by background goroutine, clea
 ## TUI Layout
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│ > search: compress_____                                 │
-├──────────────┬──────────────────────────────────────────┤
-│ tar          │ # To extract an uncompressed archive:    │
-│ gzip         │ tar -xvf /path/to/foo.tar                │
-│ zip          │                                          │
-│ rsync        │ # To create a .gz archive:               │
-│ scp          │ tar -czvf /path/to/foo.tgz /path/to/foo/ │
-│ ...          │                                          │
-├──────────────┴──────────────────────────────────────────┤
-│ [↑↓] navigate  [y] copy  [e] edit  [↵] fullscreen  [q] │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│ > search: compress_____                                     │
+├─ command ──────────────┬─ tar ───────────────────────────── │
+│ tar          │ # To extract an uncompressed archive:        │
+│ gzip         │ tar -xvf /path/to/foo.tar                    │
+│ zip          │                                              │
+│ rsync        │ # To create a .gz archive:                   │
+│ scp          │ tar -czvf /path/to/foo.tgz /path/to/foo/     │
+│ ...          │                                              │
+├─────────────────────────────────────────────────────────────┤
+│ [↑↓] scroll  [←→] switch  [esc] command mode  [ctrl+c] quit│
+└─────────────────────────────────────────────────────────────┘
 ```
 
-Fuzzy search filters both command names AND content (use-case descriptions). `y` copies the focused line to clipboard. `e` opens the file in `$EDITOR`. `Enter` fullscreen view. `q` quit.
+The TUI has two modes:
+
+- **Input mode** (default): typing filters the command list. `↑`/`↓` and `←`/`→` work for navigation; `esc` switches to command mode.
+- **Command mode**: single-letter shortcuts are active. `i` returns to input mode.
+
+The top divider labels each pane — the left always shows **command**, the right shows the currently selected command name (e.g. **tar**). The active pane label is highlighted.
+
+**Key bindings (both modes):**
+
+| Key | Action |
+|---|---|
+| `↑` / `ctrl+p` | Navigate list up (left pane) or previous entry highlight (right pane) |
+| `↓` / `ctrl+n` | Navigate list down (left pane) or next entry highlight (right pane) |
+| `←` / `→` | Switch active pane |
+| `ctrl+c` | Quit |
+
+**Command mode only:**
+
+| Key | Action |
+|---|---|
+| `i` | Enter input mode |
+| `y` | Copy selected command to clipboard |
+| `e` | Open example file in `$EDITOR` |
+| `↵` | Fullscreen preview |
+
+**Fullscreen view:** title shows only the command name (e.g. `tar`). `↑`/`↓` moves between entries; `y` copies; `esc` goes back; `ctrl+c` quits.
+
+Search ranking: exact name match → name prefix → name contains → command text prefix → command text contains → frontmatter tag match → inline tag match → comment match → fuzzy name → fuzzy full text.
 
 ---
 

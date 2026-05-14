@@ -126,19 +126,25 @@ tar -czvf /path/to/foo.tgz /path/to/foo/
 
 Layout:
 ```
-> search: [input field with fuzzy results]
-──────────────────────────────────────────
-[command list]  |  [content preview]
-──────────────────────────────────────────
-[↑↓] navigate  [y] copy  [e] edit  [q] quit
+> search: [input field]
+─ command ──────────────┬─ <selected-name> ────
+[command list]          │  [content preview]
+────────────────────────────────────────────────
+[↑↓] scroll  [←→] switch  [esc] command mode  [ctrl+c] quit
 ```
 
+The TUI has two modes. **Input mode** (default): typing filters the list; `esc` switches to command mode. **Command mode**: `i` returns to input mode; `y`, `e`, `↵` act on the selected example.
+
+`←`/`→` switch the active pane. In the left pane `↑`/`↓` navigates the command list; in the right pane `↑`/`↓` moves the entry highlight. The top divider labels the active pane (highlighted) and shows the selected command name as the right pane title.
+
+Search uses tiered scoring: exact name match → name prefix/contains → command text match → frontmatter tag match → inline tag match → comment match → fuzzy fallback.
+
 Features:
-- Fuzzy search on command names + content
-- Live preview pane
-- Copy to clipboard
-- Open in editor
-- Fullscreen view
+- Two-mode input: input mode for search, command mode for shortcuts
+- Tiered search: name → command text → tags (frontmatter + inline) → comments → fuzzy
+- Pane switching with `←`/`→`; active pane highlighted in the divider
+- Entry highlight moves with `↑`/`↓` in the right pane
+- Copy to clipboard (`y`), open in `$EDITOR` (`e`), fullscreen preview (`↵`)
 
 ### 5. AI Fallback
 

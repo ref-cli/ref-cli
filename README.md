@@ -47,14 +47,40 @@ make install          # installs to $(GOPATH)/bin
 
 ### TUI key bindings
 
-| Key            | Action                             |
-| -------------- | ---------------------------------- |
-| `↑` / `ctrl+p` | Move up                            |
-| `↓` / `ctrl+n` | Move down                          |
-| `y`            | Copy selected command to clipboard |
-| `e`            | Edit example file in `$EDITOR`     |
-| `↵`            | Toggle fullscreen preview          |
-| `q` / `ctrl+c` | Quit                               |
+The TUI has two modes: **input mode** (default — type to search) and **command mode** (navigate and act on results). Press `esc` to switch to command mode; press `i` to return to input mode.
+
+**Both modes**
+
+| Key            | Action                                      |
+| -------------- | ------------------------------------------- |
+| `↑` / `ctrl+p` | Navigate list up (left pane) or previous entry (right pane) |
+| `↓` / `ctrl+n` | Navigate list down (left pane) or next entry (right pane)   |
+| `←` / `→`      | Switch active pane                          |
+| `ctrl+c`       | Quit                                        |
+
+**Command mode only**
+
+| Key  | Action                             |
+| ---- | ---------------------------------- |
+| `i`  | Enter input mode                   |
+| `y`  | Copy selected command to clipboard |
+| `e`  | Edit example file in `$EDITOR`     |
+| `↵`  | Toggle fullscreen preview          |
+
+**Input mode only**
+
+| Key   | Action                  |
+| ----- | ----------------------- |
+| `esc` | Enter command mode      |
+
+**Fullscreen**
+
+| Key       | Action                             |
+| --------- | ---------------------------------- |
+| `↑` / `↓` | Previous / next entry              |
+| `y`       | Copy selected command to clipboard |
+| `esc`     | Back to normal view                |
+| `ctrl+c`  | Quit                               |
 
 ### AI generation
 

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -27,11 +28,12 @@ var (
 	colorDim       = lipgloss.AdaptiveColor{Light: "#555555", Dark: "#888888"}
 	colorTag       = lipgloss.AdaptiveColor{Light: "#CC7700", Dark: "#FFAF5F"}
 
-	selectedStyle  = lipgloss.NewStyle().Foreground(colorHighlight).Bold(true)
-	commentStyle   = lipgloss.NewStyle().Foreground(colorDim)
-	tagStyle       = lipgloss.NewStyle().Foreground(colorTag)
-	statusBarStyle = lipgloss.NewStyle().Foreground(colorSubtle)
-	divStyle       = lipgloss.NewStyle().Foreground(colorSubtle)
+	selectedStyle   = lipgloss.NewStyle().Foreground(colorHighlight).Bold(true)
+	activePaneStyle = lipgloss.NewStyle().Foreground(colorHighlight).Bold(true)
+	commentStyle    = lipgloss.NewStyle().Foreground(colorDim)
+	tagStyle        = lipgloss.NewStyle().Foreground(colorTag)
+	statusBarStyle  = lipgloss.NewStyle().Foreground(colorSubtle)
+	divStyle        = lipgloss.NewStyle().Foreground(colorSubtle)
 )
 
 // linesPerEntry is the number of rendered lines each entry occupies in the
@@ -65,6 +67,7 @@ type Model struct {
 	ready  bool
 
 	fullscreen bool
+	activePane int // 0 = list, 1 = preview
 	statusMsg  string
 }
 
@@ -122,12 +125,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch {
-	case bkey.Matches(msg, keys.Quit):
+	// ctrl+c always quits regardless of mode
+	if msg.Type == tea.KeyCtrlC {
 		return m, tea.Quit
+	}
 
+	// Arrow keys work in both input and command mode (no conflict with typing).
+	switch {
 	case bkey.Matches(msg, keys.Up):
-		if m.cursor > 0 {
+		if m.activePane == 1 {
+			m.moveEntry(-1)
+		} else if m.cursor > 0 {
 			m.cursor--
 			m.clampOffset()
 			m.entryCursor = 0
@@ -136,7 +144,9 @@ func (m Model) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case bkey.Matches(msg, keys.Down):
-		if m.cursor < len(m.filtered)-1 {
+		if m.activePane == 1 {
+			m.moveEntry(+1)
+		} else if m.cursor < len(m.filtered)-1 {
 			m.cursor++
 			m.clampOffset()
 			m.entryCursor = 0
@@ -144,21 +154,35 @@ func (m Model) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
-	case bkey.Matches(msg, keys.EntryUp):
-		if ex := m.selected(); ex != nil && m.entryCursor > 0 {
-			m.entryCursor--
-			m.preview.SetContent(m.renderContent(ex))
-			m.preview.SetYOffset(m.entryCursor * linesPerEntry)
-		}
+	case bkey.Matches(msg, keys.PaneLeft):
+		m.activePane = 0
 		return m, nil
 
-	case bkey.Matches(msg, keys.EntryDown):
-		if ex := m.selected(); ex != nil && m.entryCursor < len(ex.Entries)-1 {
-			m.entryCursor++
-			m.preview.SetContent(m.renderContent(ex))
-			m.preview.SetYOffset(m.entryCursor * linesPerEntry)
-		}
+	case bkey.Matches(msg, keys.PaneRight):
+		m.activePane = 1
 		return m, nil
+	}
+
+	if m.search.Focused() {
+		// Search mode: Esc exits to command mode, all other keys go to the input
+		if msg.Type == tea.KeyEsc {
+			m.search.Blur()
+			return m, nil
+		}
+		var c tea.Cmd
+		m.search, c = m.search.Update(msg)
+		m.refilter()
+		m.cursor = 0
+		m.listOffset = 0
+		m.entryCursor = bestEntryForQuery(strings.TrimSpace(m.search.Value()), m.selected())
+		m.refreshPreview()
+		return m, c
+	}
+
+	// Command mode: single-letter shortcuts are safe since input is blurred
+	switch {
+	case bkey.Matches(msg, keys.Quit):
+		return m, tea.Quit
 
 	case bkey.Matches(msg, keys.Copy):
 		if ex := m.selected(); ex != nil && m.entryCursor < len(ex.Entries) {
@@ -181,29 +205,29 @@ func (m Model) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Typing → update search
-	var c tea.Cmd
-	m.search, c = m.search.Update(msg)
-	m.refilter()
-	m.cursor = 0
-	m.listOffset = 0
-	m.entryCursor = bestEntryForQuery(strings.TrimSpace(m.search.Value()), m.selected())
-	m.refreshPreview()
-	return m, c
+	// "i" enters search mode (vim-style insert)
+	if msg.Type == tea.KeyRunes && msg.String() == "i" {
+		m.search.Focus()
+		return m, nil
+	}
+	return m, nil
 }
 
 func (m Model) updateFullscreen(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if msg.Type == tea.KeyCtrlC {
+		return m, tea.Quit
+	}
 	switch {
 	case bkey.Matches(msg, keys.Back):
 		m.fullscreen = false
 		m.syncViewport()
 		return m, nil
 
-	case bkey.Matches(msg, keys.EntryUp):
+	case bkey.Matches(msg, keys.Up):
 		m.moveEntry(-1)
 		return m, nil
 
-	case bkey.Matches(msg, keys.EntryDown):
+	case bkey.Matches(msg, keys.Down):
 		m.moveEntry(+1)
 		return m, nil
 
@@ -237,7 +261,14 @@ func (m Model) viewNormal() string {
 	lw := m.leftW()
 	lh := m.listH()
 	divH := divStyle.Render(strings.Repeat("─", m.width))
-	sep := divStyle.Render("│")
+
+	// Vertical separator: highlight when right pane is active
+	var sep string
+	if m.activePane == 1 {
+		sep = activePaneStyle.Render("│")
+	} else {
+		sep = divStyle.Render("│")
+	}
 
 	listLines := m.renderList(lw, lh)
 
@@ -260,10 +291,42 @@ func (m Model) viewNormal() string {
 	}
 
 	return m.search.View() + "\n" +
-		divH + "\n" +
+		m.renderPaneDiv() + "\n" +
 		body.String() +
 		divH + "\n" +
 		m.renderFooter()
+}
+
+// renderPaneDiv renders the top divider with "list" / "preview" labels,
+// highlighting the label for the active pane.
+func (m Model) renderPaneDiv() string {
+	lw := m.leftW()
+	rw := m.rightW()
+
+	rightName := "─"
+	if ex := m.selected(); ex != nil {
+		rightName = ex.Name
+	}
+	leftLabel := " command "
+	rightLabel := " " + rightName + " "
+
+	var lStyle, rStyle lipgloss.Style
+	if m.activePane == 0 {
+		lStyle = activePaneStyle
+		rStyle = statusBarStyle
+	} else {
+		lStyle = statusBarStyle
+		rStyle = activePaneStyle
+	}
+
+	leftFill := max(0, lw-lipgloss.Width(leftLabel))
+	rightFill := max(0, rw-lipgloss.Width(rightLabel))
+
+	left := lStyle.Render(leftLabel) + divStyle.Render(strings.Repeat("─", leftFill))
+	mid := divStyle.Render("───") // aligns with " │ " in body lines
+	right := rStyle.Render(rightLabel) + divStyle.Render(strings.Repeat("─", rightFill))
+
+	return left + mid + right
 }
 
 func (m Model) viewFullscreen() string {
@@ -271,8 +334,8 @@ func (m Model) viewFullscreen() string {
 	if ex == nil {
 		return ""
 	}
-	title := lipgloss.NewStyle().Bold(true).Render("ref " + ex.Name)
-	hint := statusBarStyle.Render("  [esc/q] back  [j/k] entry  [y] copy")
+	title := lipgloss.NewStyle().Bold(true).Render(ex.Name)
+	hint := statusBarStyle.Render("  [↑↓] scroll  [esc] back  [y] copy  [ctrl+c] quit")
 	div := divStyle.Render(strings.Repeat("─", m.width))
 
 	m.preview.Width = m.width
@@ -302,7 +365,13 @@ func (m Model) renderList(width, height int) []string {
 }
 
 func (m Model) renderFooter() string {
-	s := "[↑↓] navigate  [j/k] entry  [y] copy  [e] edit  [↵] fullscreen  [q] quit"
+	const nav = "[↑↓] scroll  [←→] switch"
+	var s string
+	if m.search.Focused() {
+		s = nav + "  [esc] command mode  [ctrl+c] quit"
+	} else {
+		s = nav + "  [i] input mode  [y] copy  [e] edit  [↵] fullscreen  [ctrl+c] quit"
+	}
 	if m.statusMsg != "" {
 		s = m.statusMsg + "  " + s
 	}
@@ -338,15 +407,82 @@ func (m *Model) refilter() {
 		m.filtered = m.allExamples
 		return
 	}
-	srcs := make([]string, len(m.allExamples))
-	for i, ex := range m.allExamples {
-		srcs[i] = ex.SearchText()
+	ql := strings.ToLower(q)
+
+	type scored struct {
+		ex    *example.Example
+		score int
 	}
-	matches := fuzzy.Find(q, srcs)
-	m.filtered = make([]*example.Example, len(matches))
-	for i, match := range matches {
-		m.filtered[i] = m.allExamples[match.Index]
+	var results []scored
+	for _, ex := range m.allExamples {
+		if s := scoreExample(ex, ql); s > 0 {
+			results = append(results, scored{ex, s})
+		}
 	}
+	sort.SliceStable(results, func(i, j int) bool {
+		return results[i].score > results[j].score
+	})
+	m.filtered = make([]*example.Example, len(results))
+	for i, r := range results {
+		m.filtered[i] = r.ex
+	}
+}
+
+// scoreExample returns a priority score for the example against a lowercased query.
+// Higher score = ranked earlier. Returns 0 if no match.
+func scoreExample(ex *example.Example, ql string) int {
+	name := strings.ToLower(ex.Name)
+	// Tier 1: name match
+	if name == ql {
+		return 1000
+	}
+	if strings.HasPrefix(name, ql) {
+		return 900
+	}
+	if strings.Contains(name, ql) {
+		return 800
+	}
+	// Tier 2: command text match
+	for _, e := range ex.Entries {
+		cmd := strings.ToLower(e.Command)
+		if strings.HasPrefix(cmd, ql) {
+			return 700
+		}
+	}
+	for _, e := range ex.Entries {
+		if strings.Contains(strings.ToLower(e.Command), ql) {
+			return 600
+		}
+	}
+	// Tier 3: frontmatter tag match (e.g. "compression" → tar)
+	for _, t := range ex.Frontmatter.Tags {
+		if strings.Contains(strings.ToLower(t), ql) {
+			return 550
+		}
+	}
+	// Tier 4: inline tag match (e.g. "gnu" → entries tagged [GNU])
+	for _, e := range ex.Entries {
+		for _, t := range e.Tags {
+			if strings.Contains(strings.ToLower(t), ql) {
+				return 450
+			}
+		}
+	}
+	// Tier 5: comment/description match
+	for _, e := range ex.Entries {
+		if strings.Contains(strings.ToLower(e.Comment), ql) {
+			return 400
+		}
+	}
+	// Tier 4: fuzzy match on name
+	if len(fuzzy.Find(ql, []string{name})) > 0 {
+		return 300
+	}
+	// Tier 5: fuzzy match on full search text
+	if len(fuzzy.Find(ql, []string{strings.ToLower(ex.SearchText())})) > 0 {
+		return 100
+	}
+	return 0
 }
 
 func (m *Model) refreshPreview() {
@@ -359,13 +495,24 @@ func (m *Model) refreshPreview() {
 	m.preview.SetYOffset(m.entryCursor * linesPerEntry)
 }
 
-// bestEntryForQuery returns the index of the entry in ex whose command+comment
-// text matches the most words from q. Falls back to 0 if nothing matches.
+// bestEntryForQuery returns the index of the entry whose command best matches q.
+// Priority: command prefix > command contains > word overlap in command+comment.
 func bestEntryForQuery(q string, ex *example.Example) int {
 	if q == "" || ex == nil {
 		return 0
 	}
-	words := strings.Fields(strings.ToLower(q))
+	ql := strings.ToLower(q)
+	for i, e := range ex.Entries {
+		if strings.HasPrefix(strings.ToLower(e.Command), ql) {
+			return i
+		}
+	}
+	for i, e := range ex.Entries {
+		if strings.Contains(strings.ToLower(e.Command), ql) {
+			return i
+		}
+	}
+	words := strings.Fields(ql)
 	bestIdx, bestScore := 0, 0
 	for i, e := range ex.Entries {
 		text := strings.ToLower(e.Command + " " + e.Comment)
@@ -446,7 +593,7 @@ func (m Model) renderContent(ex *example.Example) string {
 		}
 		sb.WriteString(commentStyle.Render(e.Comment) + "\n")
 		if i == m.entryCursor {
-			sb.WriteString(selectedStyle.Render(e.Command) + "\n")
+			sb.WriteString(selectedStyle.Render(padRight(e.Command, m.rightW())) + "\n")
 		} else {
 			sb.WriteString(e.Command + "\n")
 		}
